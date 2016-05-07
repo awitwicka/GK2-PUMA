@@ -52,6 +52,8 @@ namespace gk2
 		Mesh m_monitor;
 		Mesh m_screen;
 		Mesh m_robot[6];
+		Mesh m_metal;
+		DirectX::XMMATRIX TransformMetal;
 
 		DirectX::XMMATRIX m_projMtx;
 
@@ -82,6 +84,7 @@ namespace gk2
 		std::shared_ptr<ID3D11InputLayout> m_layout;
 
 		std::shared_ptr<ID3D11RasterizerState> m_rsCullFront;
+		std::shared_ptr<ID3D11RasterizerState> m_rsCullBack;
 		std::shared_ptr<ID3D11BlendState> m_bsAlpha;
 		std::shared_ptr<ID3D11DepthStencilState> m_dssNoWrite;
 
@@ -101,6 +104,7 @@ namespace gk2
 		void DrawTableLegs(DirectX::XMVECTOR camVec);
 		void DrawTransparentObjects();
 		void DrawRobot();
+		void DrawMetal();
 
 		void inverse_kinematics(VertexPosNormal robotPosition, float & a1, float & a2, float & a3, float & a4, float & a5);
 	};

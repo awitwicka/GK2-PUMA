@@ -118,7 +118,13 @@ void Room::CreateScene()
 	m_robot[3] = loader.LoadTxtMesh(L"resources/meshes/mesh4.txt");
 	m_robot[4] = loader.LoadTxtMesh(L"resources/meshes/mesh5.txt");
 	m_robot[5] = loader.LoadTxtMesh(L"resources/meshes/mesh6.txt");
-	UpdateLamp(0.0f);
+	UpdateRobot(0.0f);
+	//metal
+	m_metal = loader.GetQuad(2.0f);
+	auto metal = XMMatrixTranslation(0.0f, 0.0f, 2.0f);
+	float deg30toRad = 0.523599;
+	TransformMetal = XMMatrixRotationX(deg30toRad) * metal * XMMatrixRotationY(-XM_PIDIV2) * XMMatrixTranslation(0.5f, -(2-(sqrt(3)/2)), 0.0f);
+	m_metal.setWorldMatrix(TransformMetal);
 	//walls
 	m_walls[0] = loader.GetQuad(4.0f);
 	for (auto i = 1; i < 6; ++i)
@@ -182,6 +188,9 @@ void Room::InitializeRenderStates()
 	auto rsDesc = m_device.DefaultRasterizerDesc();
 	rsDesc.CullMode = D3D11_CULL_FRONT;
 	m_rsCullFront = m_device.CreateRasterizerState(rsDesc);
+
+	rsDesc.CullMode = D3D11_CULL_NONE;
+	m_rsCullBack = m_device.CreateRasterizerState(rsDesc);
 
 	auto bsDesc = m_device.DefaultBlendDesc();
 	bsDesc.RenderTarget[0].BlendEnable = true;
@@ -267,12 +276,7 @@ void Room::UpdateCamera() const
 
 void Room::UpdateLamp(float dt)
 {
-	static auto time = 0.0f;
-	time += dt;
-	auto swing = 0.3f * XMScalarSin(XM_2PI*time/8);
-	auto rot = XM_2PI*time/20;
-	auto lamp = XMMatrixTranslation(0.0f, -0.4f, 0.0f) * XMMatrixRotationX(swing) * XMMatrixRotationY(rot) *
-				XMMatrixTranslation(0.0f, 2.0f, 0.0f);
+	auto lamp = XMMatrixTranslation(0.0f, -0.4f, 0.0f)*XMMatrixTranslation(-1.0f, 2.0f, 0.0f);
 	m_lamp.setWorldMatrix(lamp);
 }
 
@@ -285,7 +289,14 @@ void gk2::Room::UpdateRobot(float dt) //dt -> ile czasu up造ne這
 	float circleRadius = 1/2.0f;
 	float x = circleRadius*cos(time*XM_2PI);
 	float y = circleRadius*sin(time*XM_2PI);
-	newPos.Pos = XMFLOAT3(x, y, 1.5f);
+	//transform from x, y, z=0 to metal plane
+	XMFLOAT3 pos = XMFLOAT3(x, y, 0);
+	XMFLOAT4 n4 = XMFLOAT4(pos.x, pos.y, pos.z, .0f);
+	auto n = XMLoadFloat4(&n4);
+	//XMStoreFloat3(&pos, XMVector4Transform(n, TransformMetal));
+	//set position/normal of robot arm
+	newPos.Pos = XMFLOAT3(-1.5f, x, y);
+	//newPos.Pos = pos;
 	newPos.Normal = XMFLOAT3(0.0f, 0.0f, -1.0f);
 
 	float a1, a2, a3, a4, a5;
@@ -293,7 +304,7 @@ void gk2::Room::UpdateRobot(float dt) //dt -> ile czasu up造ne這
 
 	XMMATRIX robot[6];
 	float l1 = .91f, l2 = .81f, l3 = .33f, dy = .27f, dz = .26f;
-	auto robot_startpos = XMMatrixTranslation(0.0f, -1.0f, 0.0f);
+	auto robot_startpos = XMMatrixTranslation(0.0f, -1.0f, 0.0f) * XMMatrixScaling(1.0, 1.0, -1.0);
 	robot[0] = robot_startpos;
 	robot[1] = XMMatrixRotationY(a1) * robot[0];
 	robot[2] = XMMatrixTranslation(0, -dy, 0) * XMMatrixRotationZ(a2) * XMMatrixTranslation(0, +dy, 0) * robot[1];
@@ -487,6 +498,7 @@ void gk2::Room::DrawRobot()
 	//TODO: Replace with environment map effect
 	m_phongEffect->Begin(m_context);
 	m_surfaceColorCB->Update(m_context, XMFLOAT4(0.8f, 0.7f, 0.65f, 1.0f));
+	m_context->RSSetState(m_rsCullBack.get());
 
 	for (auto i = 0; i < 6; i++) 
 	{
@@ -494,8 +506,17 @@ void gk2::Room::DrawRobot()
 		m_robot[i].Render(m_context);
 	}
 
+	m_context->RSSetState(nullptr);
 	m_surfaceColorCB->Update(m_context, XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f));
 	m_phongEffect->End();
+}
+
+void gk2::Room::DrawMetal()
+{
+	m_context->RSSetState(m_rsCullBack.get());
+	m_worldCB->Update(m_context, m_metal.getWorldMatrix());
+	m_metal.Render(m_context);
+	m_context->RSSetState(nullptr);
 }
 
 void gk2::Room::inverse_kinematics(VertexPosNormal robotPosition, float & a1, float & a2, float & a3, float & a4, float & a5)
@@ -541,14 +562,15 @@ void Room::DrawScene()
 	DrawWalls();
 	//DrawTeapot();
 	DrawRobot();
+	DrawMetal();
 	m_phongEffect->Begin(m_context);
 	/* //Draw shelf 
 	m_worldCB->Update(m_context, m_box.getWorldMatrix());
 	m_box.Render(m_context);
-	//Draw lamp
+	*/ //Draw lamp
 	m_worldCB->Update(m_context, m_lamp.getWorldMatrix());
 	m_lamp.Render(m_context);
-	//Draw chair seat
+	/* //Draw chair seat 
 	m_worldCB->Update(m_context, m_chairSeat.getWorldMatrix());
 	m_chairSeat.Render(m_context);
 	//Draw chairframe
