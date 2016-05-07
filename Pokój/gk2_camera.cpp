@@ -12,10 +12,10 @@ Camera::Camera(float minDistance, float maxDistance, float distance)
 
 void Camera::ClampDistance()
 {
-	/*if (m_distance < m_minDistance)
-	m_distance = m_minDistance;
-	if (m_distance > m_maxDistance)
-	m_distance = m_maxDistance;*/
+	/*if (m_xPos < m_minDistance)
+		m_xPos = m_minDistance;
+	if (m_xPos > m_maxDistance)
+		m_xPos = m_maxDistance;*/
 }
 
 void Camera::SetRange(float minDistance, float maxDistance)
@@ -35,8 +35,9 @@ void Camera::Zoom(float dx, float dz)
 	XMVECTOR right = getRightDir();
 	XMVECTOR up = getUpDir();
 	XMFLOAT3 temp;
+	
 	//XMStoreFloat3(&temp, forward*d + right * 0);
-	XMStoreFloat3(&temp, forward*dz);//+ up*dz
+	XMStoreFloat3(&temp, forward*dz + up*dz);//+ up*dz
 	m_zPos += temp.z;
 	m_xPos += temp.x;
 	m_yPos += temp.y;
@@ -122,6 +123,9 @@ XMVECTOR Camera::getRightDir() const
 XMVECTOR Camera::getUpDir() const
 {
 	XMVECTOR up = XMVectorSet(0, 1, 0, 0);
-	up = XMVector3TransformNormal(up, XMMatrixRotationX(m_angleX));
+	up = XMVector3TransformNormal(up, XMMatrixRotationX((XM_PI / 2) + m_angleX));
+	XMFLOAT3 n3 = XMFLOAT3();
+	XMStoreFloat3(&n3, up);
+	up = XMVectorSet(0, n3.y,0,0);
 	return up;
 }
