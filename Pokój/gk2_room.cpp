@@ -291,13 +291,12 @@ void gk2::Room::UpdateRobot(float dt) //dt -> ile czasu up³yne³o
 	float y = circleRadius*sin(time*XM_2PI);
 	//transform from x, y, z=0 to metal plane
 	XMFLOAT3 pos = XMFLOAT3(x, y, 0);
-	XMFLOAT4 n4 = XMFLOAT4(pos.x, pos.y, pos.z, .0f);
-	auto n = XMLoadFloat4(&n4);
-	XMStoreFloat3(&pos, XMVector4Transform(n, TransformMetal));
+	XMFLOAT4 n4 = XMFLOAT4(pos.x, pos.y, pos.z, 1.0);
+	XMStoreFloat3(&pos, XMVector3TransformCoord(XMLoadFloat4(&n4), TransformMetal));
 	//set position/normal of robot arm
-	//newPos.Pos = XMFLOAT3(-1.5f, x, y);
-	newPos.Pos = pos;
-	newPos.Normal = XMFLOAT3(0.0f, 0.0f, -1.0f);
+	newPos.Pos = XMFLOAT3(-1.5f, x, y);
+	//newPos.Pos = pos;
+	newPos.Normal = XMFLOAT3(sqrt(3), -1.0f, 0.0f);
 
 	float a1, a2, a3, a4, a5;
 	inverse_kinematics(newPos, a1, a2, a3, a4, a5);
@@ -373,6 +372,7 @@ void Room::DrawWalls() const
 	m_textureEffect->SetTexture(m_wallTexture);
 	m_textureEffect->Begin(m_context);
 	for (auto i = 1; i < 4; ++i)
+
 	{
 		m_worldCB->Update(m_context, m_walls[i].getWorldMatrix());
 		m_walls[i].Render(m_context);
@@ -545,12 +545,14 @@ void gk2::Room::inverse_kinematics(VertexPosNormal robotPosition, float & a1, fl
 	
 	XMFLOAT3 normal1;
 	XMFLOAT4 n4 = XMFLOAT4(robotPosition.Normal.x, robotPosition.Normal.y, robotPosition.Normal.z, .0f);
-	auto n = XMLoadFloat4(&n4);
-	XMStoreFloat3(&normal1, XMVector4Transform(n, XMMatrixRotationY(-a1)));
+	//auto n = XMLoadFloat4(&n4);
+	//XMStoreFloat3(&normal1, XMVector4Transform(n, XMMatrixRotationY(-a1)));
+	XMStoreFloat3(&normal1, XMVector2TransformNormal(XMLoadFloat4(&n4), XMMatrixRotationY(-a1)));
 
 	n4 = XMFLOAT4(normal1.x, normal1.y, normal1.z, .0f);
-	n = XMLoadFloat4(&n4);
-	XMStoreFloat3(&normal1, XMVector4Transform(n, XMMatrixRotationZ(-(a2+a3))));
+	//n = XMLoadFloat4(&n4);
+	//XMStoreFloat3(&normal1, XMVector4Transform(n, XMMatrixRotationZ(-(a2+a3))));
+	XMStoreFloat3(&normal1, XMVector2TransformNormal(XMLoadFloat4(&n4), XMMatrixRotationZ(-(a2 + a3))));
 
 	a5 = acosf(normal1.x);
 	a4 = atan2(normal1.z, normal1.y);
