@@ -1,20 +1,21 @@
 #include "gk2_camera.h"
-
+#include <DirectXMath.h>
+#include <stdio.h>
 using namespace gk2;
 using namespace DirectX;
 
 Camera::Camera(float minDistance, float maxDistance, float distance)
-	: m_angleX(0.0f), m_angleY(0.0f), m_distance(distance)
+	: m_angleX(0.0f), m_angleY(0.0f), m_zPos(distance), m_xPos(0.0f), m_yPos(0.0f)
 {
 	SetRange(minDistance, maxDistance);
 }
 
 void Camera::ClampDistance()
 {
-	if (m_distance < m_minDistance)
-		m_distance = m_minDistance;
+	/*if (m_distance < m_minDistance)
+	m_distance = m_minDistance;
 	if (m_distance > m_maxDistance)
-		m_distance = m_maxDistance;
+	m_distance = m_maxDistance;*/
 }
 
 void Camera::SetRange(float minDistance, float maxDistance)
@@ -28,10 +29,21 @@ void Camera::SetRange(float minDistance, float maxDistance)
 	ClampDistance();
 }
 
-void Camera::Zoom(float d)
+void Camera::Zoom(float dx, float dz)
 {
-	m_distance += d;
-	ClampDistance();
+	XMVECTOR forward = getForwardDir();
+	XMVECTOR right = getRightDir();
+	XMVECTOR up = getUpDir();
+	XMFLOAT3 temp;
+	//XMStoreFloat3(&temp, forward*d + right * 0);
+	XMStoreFloat3(&temp, forward*dz);//+ up*dz
+	m_zPos += temp.z;
+	m_xPos += temp.x;
+	m_yPos += temp.y;
+
+	//	printf("%lf\n", temp.y);
+
+	//ClampDistance();
 }
 
 void Camera::Rotate(float dx, float dy)
@@ -49,7 +61,34 @@ XMMATRIX Camera::GetViewMatrix() const
 
 void Camera::GetViewMatrix(XMMATRIX& viewMtx) const
 {
-	viewMtx = XMMatrixRotationY(-m_angleY) * XMMatrixRotationX(m_angleX)  * XMMatrixTranslation(0.0f, 0.0f, m_distance);
+	XMVECTOR forward = getForwardDir();
+	XMVECTOR right = getRightDir();
+	//	XMFLOAT3 temp;
+
+	//	XMStoreFloat3(&temp, forward*m_zPos + right*m_xPos);
+	//	XMFLOAT2 tr = XMFLOAT2(temp.x, temp.z);
+
+
+	XMFLOAT3 up = XMFLOAT3(0.0f, 1.0f, 0.0f);
+	XMFLOAT3 position = XMFLOAT3(m_xPos, m_yPos, m_zPos);
+	XMFLOAT3 lookAt = XMFLOAT3(0, 0, 1);
+
+
+	XMMATRIX rotationMatrix;
+
+	float pitch = m_angleX;
+	float yaw = -m_angleY;
+	float roll = 0;
+	rotationMatrix = XMMatrixRotationRollPitchYaw(pitch, yaw, roll);
+
+	XMVECTOR lookAtVec = XMVector3TransformCoord(XMLoadFloat3(&lookAt), rotationMatrix);
+
+	XMVECTOR upVec = XMVector3TransformCoord(XMLoadFloat3(&up), rotationMatrix);
+
+	lookAtVec = XMLoadFloat3(&position) + lookAtVec;
+
+	viewMtx = XMMatrixLookAtLH(lookAtVec, XMLoadFloat3(&position), upVec);
+
 }
 
 XMFLOAT4 Camera::GetPosition() const
@@ -63,4 +102,26 @@ XMFLOAT4 Camera::GetPosition() const
 	auto transl = XMVector3TransformCoord(XMLoadFloat3(&res), viewMtx);
 	XMStoreFloat3(&res, transl);
 	return XMFLOAT4(res.x, res.y, res.z, 1.0f);
+}
+
+
+XMVECTOR Camera::getForwardDir() const
+{
+	XMVECTOR forward = XMVectorSet(0, 0, 1, 0);
+	forward = XMVector3TransformNormal(forward, XMMatrixRotationY(-m_angleY));
+	return forward;
+}
+
+XMVECTOR Camera::getRightDir() const
+{
+	XMVECTOR right = XMVectorSet(1, 0, 0, 0);
+	right = XMVector3TransformNormal(right, XMMatrixRotationY(m_angleY));
+	return right;
+}
+
+XMVECTOR Camera::getUpDir() const
+{
+	XMVECTOR up = XMVectorSet(0, 1, 0, 0);
+	up = XMVector3TransformNormal(up, XMMatrixRotationX(m_angleX));
+	return up;
 }

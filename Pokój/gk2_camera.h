@@ -8,19 +8,24 @@ namespace gk2
 	class Camera
 	{
 	public:
-		Camera(float minDistance, float maxDistance, float distance =  0.0f);
+		Camera(float minDistance, float maxDistance, float distance = 0.0f);
 
 		void SetRange(float minDistance, float maxDistance);
-		void Zoom(float d);
+		void Zoom(float dx, float dz);
 		void Rotate(float dx, float dy);
 		DirectX::XMMATRIX GetViewMatrix() const;
 		void GetViewMatrix(DirectX::XMMATRIX& viewMatrix) const;
 		DirectX::XMFLOAT4 GetPosition() const;
+		DirectX::XMVECTOR getForwardDir() const;
+		DirectX::XMVECTOR getRightDir() const;
+		DirectX::XMVECTOR getUpDir() const;
 
 	private:
 		float m_angleX;
 		float m_angleY;
-		float m_distance;
+		float m_yPos;
+		float m_zPos;
+		float m_xPos;
 		float m_minDistance;
 		float m_maxDistance;
 

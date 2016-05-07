@@ -55,7 +55,7 @@ void Room::InitializeCamera()
 	auto ar = static_cast<float>(s.cx) / s.cy;
 	m_projMtx = XMMatrixPerspectiveFovLH(XM_PIDIV4, ar, 0.01f, 100.0f);
 	m_projCB->Update(m_context, m_projMtx);
-	m_camera.Zoom(5);
+	m_camera.Zoom(0,5);
 	UpdateCamera();
 }
 
@@ -293,10 +293,10 @@ void gk2::Room::UpdateRobot(float dt) //dt -> ile czasu up³yne³o
 	XMFLOAT3 pos = XMFLOAT3(x, y, 0);
 	XMFLOAT4 n4 = XMFLOAT4(pos.x, pos.y, pos.z, .0f);
 	auto n = XMLoadFloat4(&n4);
-	//XMStoreFloat3(&pos, XMVector4Transform(n, TransformMetal));
+	XMStoreFloat3(&pos, XMVector4Transform(n, TransformMetal));
 	//set position/normal of robot arm
-	newPos.Pos = XMFLOAT3(-1.5f, x, y);
-	//newPos.Pos = pos;
+	//newPos.Pos = XMFLOAT3(-1.5f, x, y);
+	newPos.Pos = pos;
 	newPos.Normal = XMFLOAT3(0.0f, 0.0f, -1.0f);
 
 	float a1, a2, a3, a4, a5;
@@ -333,7 +333,7 @@ void Room::Update(float dt)
 		else if (prevState.isButtonDown(1))
 		{
 			auto d = currentState.getMousePositionChange();
-			m_camera.Zoom(d.y/10.0f);
+			m_camera.Zoom(0, d.y/10.0f);
 		}
 		else
 			change = false;
