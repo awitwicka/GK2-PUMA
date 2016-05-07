@@ -259,7 +259,7 @@ Mesh gk2::MeshLoader::LoadTxtMesh(const std::wstring & fileName)
 																//exceptions in case of eof, but here if end of file was
 																//reached before the whole mesh was loaded, we would
 																//have had to throw an exception anyway.
-	int v, n, in;
+	int v, n, in, m;
 	input.open(fileName);
 
 	input >> v;
@@ -279,8 +279,34 @@ Mesh gk2::MeshLoader::LoadTxtMesh(const std::wstring & fileName)
 	}
 	input >> in;
 	vector<unsigned short> indices(in*3);
-	for (auto i = 0; i < in*3; ++i) {
-		input >> indices[i];
+	vector<unsigned short[3]> indicesIndexes(in);
+	int a = 0;
+	for (auto i = 0; i < in; ++i) {
+		input >> indices[a];
+		indicesIndexes[i][0] = indices[a];
+		a++;
+		input >> indices[a];
+		indicesIndexes[i][1] = indices[a];
+		a++;
+		input >> indices[a];
+		indicesIndexes[i][2] = indices[a];
+		a++;
+	}
+	input >> m;
+	vector<VertexLineTriangles> edgesInfo(m);
+	for (auto i = 0; i < m; ++i) {
+		input >> index;
+		edgesInfo[i].Pos1 = uniqueVertices[index].Pos;
+		input >> index;
+		edgesInfo[i].Pos2 = uniqueVertices[index].Pos;
+		input >> index;
+		edgesInfo[i].Triangle1[0] = indicesIndexes[index][0];
+		edgesInfo[i].Triangle1[1] = indicesIndexes[index][1];
+		edgesInfo[i].Triangle1[2] = indicesIndexes[index][2];
+		input >> index;
+		edgesInfo[i].Triangle2[0] = indicesIndexes[index][0];
+		edgesInfo[i].Triangle2[1] = indicesIndexes[index][1];
+		edgesInfo[i].Triangle2[2] = indicesIndexes[index][2];
 	}
 	input.close();
 	return Mesh(m_device.CreateVertexBuffer(vertices), sizeof(VertexPosNormal),

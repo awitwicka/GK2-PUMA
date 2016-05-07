@@ -20,6 +20,17 @@ namespace gk2
 		static const unsigned int LayoutElements = 2;
 		static const D3D11_INPUT_ELEMENT_DESC Layout[LayoutElements];
 	};
+
+	struct VertexLineTriangles
+	{
+		DirectX::XMFLOAT3 Pos1;
+		DirectX::XMFLOAT3 Pos2;
+		unsigned short Triangle1[3];
+		unsigned short Triangle2[3];
+		static const unsigned int LayoutElements = 4;
+		static const D3D11_INPUT_ELEMENT_DESC Layout[LayoutElements];
+	};
+
 }
 
 #endif __GK2_VERTICES_H_

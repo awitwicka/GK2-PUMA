@@ -276,26 +276,30 @@ void Room::UpdateLamp(float dt)
 	m_lamp.setWorldMatrix(lamp);
 }
 
-void gk2::Room::UpdateRobot(float dt) //dt -> 0-1 sec
+void gk2::Room::UpdateRobot(float dt) //dt -> ile czasu up³yne³o
 {
+	static auto time = 0.0f;
+	time += dt;
+
 	VertexPosNormal newPos;
-	float circleRadius = 1;
-	float x = circleRadius*cos(dt*XM_PI);
-	float y = circleRadius*sin(dt*XM_PI);
-	newPos.Pos = XMFLOAT3(x, y, 1.0f);
-	newPos.Normal = XMFLOAT3(1.0f, 1.0f, 1.0f);
+	float circleRadius = 1/2.0f;
+	float x = circleRadius*cos(time*XM_2PI);
+	float y = circleRadius*sin(time*XM_2PI);
+	newPos.Pos = XMFLOAT3(x, y, 1.5f);
+	newPos.Normal = XMFLOAT3(0.0f, 0.0f, -1.0f);
 
 	float a1, a2, a3, a4, a5;
 	inverse_kinematics(newPos, a1, a2, a3, a4, a5);
 
 	XMMATRIX robot[6];
+	float l1 = .91f, l2 = .81f, l3 = .33f, dy = .27f, dz = .26f;
 	auto robot_startpos = XMMatrixTranslation(0.0f, -1.0f, 0.0f);
 	robot[0] = robot_startpos;
 	robot[1] = XMMatrixRotationY(a1) * robot[0];
-	robot[2] = XMMatrixRotationZ(a2) * robot[1];
-	robot[3] = XMMatrixRotationZ(a3) * robot[2];
-	robot[4] = XMMatrixRotationX(a4) * robot[3];
-	robot[5] = XMMatrixRotationZ(a5) * robot[4]; //TODO correct last part of robot - it rotates itself wrong
+	robot[2] = XMMatrixTranslation(0, -dy, 0) * XMMatrixRotationZ(a2) * XMMatrixTranslation(0, +dy, 0) * robot[1];
+	robot[3] = XMMatrixTranslation(l1, -dy, 0) * XMMatrixRotationZ(a3) * XMMatrixTranslation(-l1, dy, 0) * robot[2];
+	robot[4] = XMMatrixTranslation(0, -dy, -dz) * XMMatrixRotationX(a4) * XMMatrixTranslation(0, dy, dz) * robot[3];
+	robot[5] = XMMatrixTranslation(l1 + l2, -dy, 0) * XMMatrixRotationZ(a5) * XMMatrixTranslation(-(l1 + l2), dy, 0) * robot[4]; 
 	for (auto i = 0; i < 6; i++) {
 		m_robot[i].setWorldMatrix(robot[i]);
 	}
