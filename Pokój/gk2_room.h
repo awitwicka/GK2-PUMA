@@ -109,7 +109,7 @@ namespace gk2
 		void DrawTeapot() const;
 		void DrawTableElement(Mesh& element) const;
 		void DrawTableLegs(DirectX::XMVECTOR camVec);
-		void DrawTransparentObjects();
+		void DrawParticles();
 		void DrawRobot();
 		void DrawMetal();
 		void DrawMirroredWorld();

@@ -118,12 +118,12 @@ void Room::CreateScene()
 	m_robot[3] = loader.LoadTxtMesh(L"resources/meshes/mesh4.txt");
 	m_robot[4] = loader.LoadTxtMesh(L"resources/meshes/mesh5.txt");
 	m_robot[5] = loader.LoadTxtMesh(L"resources/meshes/mesh6.txt");
-	UpdateRobot(0.0f);
 	//metal
 	m_metal = loader.GetQuad(2.0f);
 	auto metal = XMMatrixTranslation(0.0f, 0.0f, 2.0f);
 	float deg30toRad = 0.523599;
-	transformMetal = XMMatrixRotationX(deg30toRad) * metal * XMMatrixRotationY(-XM_PIDIV2) * XMMatrixTranslation(0.5f, -(2-(sqrt(3)/2)), 0.0f);
+	//transformMetal = XMMatrixRotationX(deg30toRad) * metal * XMMatrixRotationY(-XM_PIDIV2) * XMMatrixTranslation(0.5f, -(2-(sqrt(3)/2)), 0.0f);
+	transformMetal = XMMatrixRotationX(deg30toRad) * XMMatrixRotationY(-XM_PIDIV2) * XMMatrixTranslation(-1.5f, -(2 - (sqrt(3) / 2)), 0.0f);
 	m_metal.setWorldMatrix(transformMetal);
 	XMVECTOR det;
 	m_mirrorMtx = XMMatrixInverse(&det, transformMetal) * XMMatrixScaling(1, 1, -1) * transformMetal;
@@ -289,7 +289,7 @@ bool Room::LoadContent()
 	m_environmentMapper->SetCameraPosBuffer(m_cameraPosCB);
 	m_environmentMapper->SetSurfaceColorBuffer(m_surfaceColorCB);
 
-	m_particles.reset(new ParticleSystem(m_device, m_context, XMFLOAT3(-1.3f, -0.6f, -0.14f)));
+	m_particles.reset(new ParticleSystem(m_device, m_context, XMFLOAT3(0.0f, 0.0f, 0.f)));
 	m_particles->SetViewMtxBuffer(m_viewCB);
 	m_particles->SetProjMtxBuffer(m_projCB);
 	m_particles->SetSamplerState(m_samplerWrap);
@@ -334,6 +334,8 @@ void gk2::Room::UpdateRobot(float dt) //dt -> ile czasu up³yne³o
 	XMStoreFloat3(&pos, XMVector3TransformCoord(XMLoadFloat4(&n4), transformMetal));
 	//set position/normal of robot arm
 	//newPos.Pos = XMFLOAT3(-1.5f, x, y);
+	ParticleSystem * a = m_particles.get();
+	a->SetEmitterPos(pos);
 	newPos.Pos = pos;
 	newPos.Normal = XMFLOAT3(sqrt(3), -1.0f, 0.0f);
 
@@ -492,7 +494,7 @@ void Room::DrawTableLegs(XMVECTOR camVec)
 	}
 }
 
-void Room::DrawTransparentObjects()
+void Room::DrawParticles()
 {
 	m_context->OMSetBlendState(m_bsAlpha.get(), nullptr, BS_MASK);
 	m_context->OMSetDepthStencilState(m_dssNoWrite.get(), 0);
@@ -507,12 +509,12 @@ void Room::DrawTransparentObjects()
 		m_phongEffect->Begin(m_context);
 		m_context->RSSetState(m_rsCullFront.get());
 		m_worldCB->Update(m_context, m_tableSide.getWorldMatrix());
-		m_tableSide.Render(m_context);
+		//m_tableSide.Render(m_context);
 		m_context->RSSetState(nullptr);
-		DrawTableLegs(camVec);
+		//DrawTableLegs(camVec);
 		m_worldCB->Update(m_context, m_tableSide.getWorldMatrix());
-		m_tableSide.Render(m_context);
-		DrawTableElement(m_tableTop);
+		//m_tableSide.Render(m_context);
+		//DrawTableElement(m_tableTop);
 		m_phongEffect->End();
 		m_particles->Render(m_context);
 	}
@@ -520,14 +522,14 @@ void Room::DrawTransparentObjects()
 	{
 		m_particles->Render(m_context);
 		m_phongEffect->Begin(m_context);
-		DrawTableElement(m_tableTop);
+		//DrawTableElement(m_tableTop);
 		m_context->RSSetState(m_rsCullFront.get());
 		m_worldCB->Update(m_context, m_tableSide.getWorldMatrix());
-		m_tableSide.Render(m_context);
+		//m_tableSide.Render(m_context);
 		m_context->RSSetState(nullptr);
-		DrawTableLegs(camVec);
+		//DrawTableLegs(camVec);
 		m_worldCB->Update(m_context, m_tableSide.getWorldMatrix());
-		m_tableSide.Render(m_context);
+		//m_tableSide.Render(m_context);
 		m_phongEffect->End();
 	}
 	m_surfaceColorCB->Update(m_context, XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f));
@@ -663,7 +665,7 @@ void Room::DrawScene()
 	m_screen.Render(m_context);
 	*/
 	m_phongEffect->End();
-	//DrawTransparentObjects();
+	DrawParticles();
 }
 
 void Room::Render()

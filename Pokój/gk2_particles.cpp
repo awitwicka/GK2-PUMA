@@ -25,6 +25,8 @@ bool ParticleComparer::operator()(const ParticleVertex& p1, const ParticleVertex
 	auto camPos = XMLoadFloat4(&m_camPos);
 	
 	//TODO: compare particle distances to the camera, return true if p1 is farther than p2 or false otherwise
+	auto d1 = XMVector3Dot(p1Pos - camPos, camDir).m128_f32[0];
+	auto d2 = XMVector3Dot(p2Pos - camPos, camDir).m128_f32[0];
 	return true;
 }
 
@@ -98,7 +100,12 @@ void ParticleSystem::AddNewParticle()
 {
 	Particle p;
 	//TODO: Setup initial values
-
+	p.Vertex.Pos = m_emitterPos;
+	p.Vertex.Age = 0.0f;
+	p.Vertex.Angle = 0.0f;
+	p.Vertex.Size = PARTICLE_SIZE;
+	p.Velocities.Velocity = RandomVelocity();
+	p.Velocities.AngleVelocity = m_angleVelDist(m_random);
 	m_particles.push_back(p);
 }
 
@@ -125,6 +132,10 @@ XMFLOAT4 operator -(const XMFLOAT4& v1, const XMFLOAT4& v2)
 void ParticleSystem::UpdateParticle(Particle& p, float dt)
 {
 	//TODO: Update particle's fields
+	p.Vertex.Age += dt;
+	p.Vertex.Pos = p.Vertex.Pos + p.Velocities.Velocity * dt;
+	p.Vertex.Size += PARTICLE_SCALE * PARTICLE_SIZE * dt;
+	p.Vertex.Angle += p.Velocities.AngleVelocity * dt;
 }
 
 void ParticleSystem::UpdateVertexBuffer(shared_ptr<ID3D11DeviceContext>& context, XMFLOAT4 cameraPos)
@@ -132,6 +143,10 @@ void ParticleSystem::UpdateVertexBuffer(shared_ptr<ID3D11DeviceContext>& context
 	vector<ParticleVertex> vertices(MAX_PARTICLES);
 	XMFLOAT4 cameraTarget(0.0f, 0.0f, 0.0f, 1.0f);
 	//TODO: copy ParticleVertex values from list into vector and sort them using ParticleComparer
+	auto vit = vertices.begin();
+	for (auto lit = m_particles.begin(); lit != m_particles.end(); ++vit, ++lit)
+		*vit = lit->Vertex;
+	//sort(vertices.begin(), vit, ParticleComparer(cameraTarget - cameraPos, cameraPos)); //TODO CORRECT COMPARATOR
 
 	D3D11_MAPPED_SUBRESOURCE resource;
 	auto hr = context->Map(m_vertices.get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &resource);
@@ -141,10 +156,34 @@ void ParticleSystem::UpdateVertexBuffer(shared_ptr<ID3D11DeviceContext>& context
 	context->Unmap(m_vertices.get(), 0);
 }
 
+void ParticleSystem::SetEmitterPos(XMFLOAT3 emitterPos)
+{
+	m_emitterPos = emitterPos;
+}
+
 void ParticleSystem::Update(shared_ptr<ID3D11DeviceContext>& context, float dt, XMFLOAT4 cameraPos)
 {
 	//TODO: Update existing particles and remove them if necessary
-
+	for (auto it = m_particles.begin(); it != m_particles.end(); )
+	{
+		UpdateParticle(*it, dt);
+		auto prev = it++;
+		if (prev->Vertex.Age >= TIME_TO_LIVE)
+		{
+			m_particles.erase(prev);
+			--m_particlesCount;
+		}
+	}
+	m_particlesToCreate += dt * EMISSION_RATE;
+	while (m_particlesToCreate >= 1.0f)
+	{
+		--m_particlesToCreate;
+		if (m_particlesCount < MAX_PARTICLES)
+		{
+			AddNewParticle();
+			++m_particlesCount;
+		}
+	}
 	//TODO: Create and add new particles if needed
 
 	UpdateVertexBuffer(context, cameraPos);

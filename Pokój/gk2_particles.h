@@ -51,6 +51,7 @@ namespace gk2
 	class ParticleSystem
 	{
 	public:
+		
 		ParticleSystem(DeviceHelper& device, std::shared_ptr<ID3D11DeviceContext> context,
 			DirectX::XMFLOAT3 emitterPos);
 
@@ -58,6 +59,7 @@ namespace gk2
 		void SetProjMtxBuffer(const std::shared_ptr<CBMatrix>& proj);
 		void SetSamplerState(const std::shared_ptr<ID3D11SamplerState>& samplerState);
 
+		void SetEmitterPos(DirectX::XMFLOAT3 emitterPos);
 		void Update(std::shared_ptr<ID3D11DeviceContext>& context, float dt, DirectX::XMFLOAT4 cameraPos);
 		void Render(std::shared_ptr<ID3D11DeviceContext>& context) const;
 
