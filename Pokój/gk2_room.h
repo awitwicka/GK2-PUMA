@@ -53,7 +53,7 @@ namespace gk2
 		Mesh m_screen;
 		Mesh m_robot[6];
 		Mesh m_metal;
-		DirectX::XMMATRIX TransformMetal;
+		DirectX::XMMATRIX transformMetal;
 
 		DirectX::XMMATRIX m_projMtx;
 

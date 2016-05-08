@@ -1,4 +1,4 @@
-#include "gk2_room.h"
+ï»¿#include "gk2_room.h"
 #include "gk2_window.h"
 #include "gk2_textureGenerator.h"
 #include "gk2_utils.h"
@@ -123,8 +123,8 @@ void Room::CreateScene()
 	m_metal = loader.GetQuad(2.0f);
 	auto metal = XMMatrixTranslation(0.0f, 0.0f, 2.0f);
 	float deg30toRad = 0.523599;
-	TransformMetal = XMMatrixRotationX(deg30toRad) * metal * XMMatrixRotationY(-XM_PIDIV2) * XMMatrixTranslation(0.5f, -(2-(sqrt(3)/2)), 0.0f);
-	m_metal.setWorldMatrix(TransformMetal);
+	transformMetal = XMMatrixRotationX(deg30toRad) * metal * XMMatrixRotationY(-XM_PIDIV2) * XMMatrixTranslation(0.5f, -(2-(sqrt(3)/2)), 0.0f);
+	m_metal.setWorldMatrix(transformMetal);
 	//walls
 	m_walls[0] = loader.GetQuad(4.0f);
 	for (auto i = 1; i < 6; ++i)
@@ -280,7 +280,7 @@ void Room::UpdateLamp(float dt)
 	m_lamp.setWorldMatrix(lamp);
 }
 
-void gk2::Room::UpdateRobot(float dt) //dt -> ile czasu up³yne³o
+void gk2::Room::UpdateRobot(float dt) //dt -> ile czasu upÂ³yneÂ³o
 {
 	static auto time = 0.0f;
 	time += dt;
@@ -289,13 +289,17 @@ void gk2::Room::UpdateRobot(float dt) //dt -> ile czasu up³yne³o
 	float circleRadius = 1/2.0f;
 	float x = circleRadius*cos(time*XM_2PI);
 	float y = circleRadius*sin(time*XM_2PI);
+	/////
+
+
 	//transform from x, y, z=0 to metal plane
 	XMFLOAT3 pos = XMFLOAT3(x, y, 0);
 	XMFLOAT4 n4 = XMFLOAT4(pos.x, pos.y, pos.z, 1.0);
-	XMStoreFloat3(&pos, XMVector3TransformCoord(XMLoadFloat4(&n4), TransformMetal));
+
+	XMStoreFloat3(&pos, XMVector3TransformCoord(XMLoadFloat4(&n4), transformMetal));
 	//set position/normal of robot arm
-	newPos.Pos = XMFLOAT3(-1.5f, x, y);
-	//newPos.Pos = pos;
+	//newPos.Pos = XMFLOAT3(-1.5f, x, y);
+	newPos.Pos = pos;
 	newPos.Normal = XMFLOAT3(sqrt(3), -1.0f, 0.0f);
 
 	float a1, a2, a3, a4, a5;
@@ -308,8 +312,8 @@ void gk2::Room::UpdateRobot(float dt) //dt -> ile czasu up³yne³o
 	robot[1] = XMMatrixRotationY(a1) * robot[0];
 	robot[2] = XMMatrixTranslation(0, -dy, 0) * XMMatrixRotationZ(a2) * XMMatrixTranslation(0, +dy, 0) * robot[1];
 	robot[3] = XMMatrixTranslation(l1, -dy, 0) * XMMatrixRotationZ(a3) * XMMatrixTranslation(-l1, dy, 0) * robot[2];
-	robot[4] = XMMatrixTranslation(0, -dy, -dz) * XMMatrixRotationX(a4) * XMMatrixTranslation(0, dy, dz) * robot[3];
-	robot[5] = XMMatrixTranslation(l1 + l2, -dy, 0) * XMMatrixRotationZ(a5) * XMMatrixTranslation(-(l1 + l2), dy, 0) * robot[4]; 
+	robot[4] = XMMatrixTranslation(l1 + l2, -dy, 0) * XMMatrixRotationZ(a5) * XMMatrixTranslation(-(l1 + l2), dy, 0) * robot[3];	
+	robot[5] = XMMatrixTranslation(0, -dy, dz) * XMMatrixRotationX(a4) * XMMatrixTranslation(0, dy, -dz) * robot[4];
 	for (auto i = 0; i < 6; i++) {
 		m_robot[i].setWorldMatrix(robot[i]);
 	}
@@ -532,27 +536,30 @@ void gk2::Room::inverse_kinematics(VertexPosNormal robotPosition, float & a1, fl
 	l3normal.x *= l3;
 	l3normal.y *= l3;
 	l3normal.z *= l3;
-	auto pos1 = robotPosition.Pos;
+	auto pos1 = XMFLOAT3(robotPosition.Pos);
 	pos1.x += l3normal.x;
 	pos1.y += l3normal.y;
 	pos1.z += l3normal.z;
+
 	float e = sqrtf(pos1.z*pos1.z + pos1.x*pos1.x - dz*dz);
 	a1 = atan2(pos1.z, -pos1.x) + atan2(dz, e);
+
 	auto pos2 = XMFLOAT3(e, pos1.y - dy, .0f);
 	a3 = -acosf(min(1.0f, (pos2.x*pos2.x + pos2.y*pos2.y - l1*l1 - l2*l2) / (2.0f*l1*l2)));
+
 	float k = l1 + l2 * cosf(a3), l = l2 * sinf(a3);
 	a2 = -atan2(pos2.y, sqrtf(pos2.x*pos2.x + pos2.z*pos2.z)) - atan2(l, k);
 	
 	XMFLOAT3 normal1;
-	XMFLOAT4 n4 = XMFLOAT4(robotPosition.Normal.x, robotPosition.Normal.y, robotPosition.Normal.z, .0f);
+	//XMFLOAT4 n4 = XMFLOAT4(robotPosition.Normal.x, robotPosition.Normal.y, robotPosition.Normal.z, .0f);
 	//auto n = XMLoadFloat4(&n4);
 	//XMStoreFloat3(&normal1, XMVector4Transform(n, XMMatrixRotationY(-a1)));
-	XMStoreFloat3(&normal1, XMVector2TransformNormal(XMLoadFloat4(&n4), XMMatrixRotationY(-a1)));
+	XMStoreFloat3(&normal1, XMVector3TransformNormal(XMLoadFloat3(&robotPosition.Normal), XMMatrixRotationY(-a1)));
 
-	n4 = XMFLOAT4(normal1.x, normal1.y, normal1.z, .0f);
+	//n4 = XMFLOAT4(normal1.x, normal1.y, normal1.z, .0f);
 	//n = XMLoadFloat4(&n4);
 	//XMStoreFloat3(&normal1, XMVector4Transform(n, XMMatrixRotationZ(-(a2+a3))));
-	XMStoreFloat3(&normal1, XMVector2TransformNormal(XMLoadFloat4(&n4), XMMatrixRotationZ(-(a2 + a3))));
+	XMStoreFloat3(&normal1, XMVector3TransformNormal(XMLoadFloat3(&normal1), XMMatrixRotationZ(-(a2 + a3))));
 
 	a5 = acosf(normal1.x);
 	a4 = atan2(normal1.z, normal1.y);
@@ -561,7 +568,7 @@ void gk2::Room::inverse_kinematics(VertexPosNormal robotPosition, float & a1, fl
 void Room::DrawScene()
 {
 
-	DrawWalls();
+	//DrawWalls();
 	//DrawTeapot();
 	DrawRobot();
 	DrawMetal();
