@@ -56,6 +56,7 @@ namespace gk2
 		DirectX::XMMATRIX transformMetal;
 
 		DirectX::XMMATRIX m_projMtx;
+		DirectX::XMMATRIX m_mirrorMtx;
 
 		Camera m_camera;
 
@@ -85,6 +86,12 @@ namespace gk2
 
 		std::shared_ptr<ID3D11RasterizerState> m_rsCullFront;
 		std::shared_ptr<ID3D11RasterizerState> m_rsCullBack;
+		//Depth stencil state used to fill the stencil buffer
+		std::shared_ptr<ID3D11DepthStencilState> m_dssWrite;
+		//Depth stencil state used to perform stencil test when drawing mirrored scene
+		std::shared_ptr<ID3D11DepthStencilState> m_dssTest;
+		//Rasterizer state used to define front faces as counter-clockwise, used when drawing mirrored scene
+		std::shared_ptr<ID3D11RasterizerState> m_rsCounterClockwise;
 		std::shared_ptr<ID3D11BlendState> m_bsAlpha;
 		std::shared_ptr<ID3D11DepthStencilState> m_dssNoWrite;
 
@@ -93,7 +100,7 @@ namespace gk2
 		void InitializeCamera();
 		void InitializeRenderStates();
 		void CreateScene();
-		void UpdateCamera() const;
+		void UpdateCamera(const DirectX::XMMATRIX& view) const;
 		void UpdateLamp(float dt);
 		void UpdateRobot(float dt);
 
@@ -105,6 +112,7 @@ namespace gk2
 		void DrawTransparentObjects();
 		void DrawRobot();
 		void DrawMetal();
+		void DrawMirroredWorld();
 
 		void inverse_kinematics(VertexPosNormal robotPosition, float & a1, float & a2, float & a3, float & a4, float & a5);
 	};

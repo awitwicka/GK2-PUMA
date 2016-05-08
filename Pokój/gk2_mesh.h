@@ -23,10 +23,10 @@ namespace gk2
 
 		static void* operator new(size_t size);
 		static void operator delete(void* ptr);
-
 	private:
 		std::shared_ptr<ID3D11Buffer> m_vertexBuffer;
 		std::shared_ptr<ID3D11Buffer> m_indexBuffer;
+		
 		unsigned int m_stride;
 		unsigned int m_indicesCount;
 		DirectX::XMMATRIX m_worldMtx;

@@ -55,3 +55,4 @@ void Mesh::Render(const shared_ptr<ID3D11DeviceContext>& context) const
 	context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	context->DrawIndexed(m_indicesCount, 0, 0);
 }
+

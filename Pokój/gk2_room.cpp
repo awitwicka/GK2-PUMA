@@ -56,7 +56,7 @@ void Room::InitializeCamera()
 	m_projMtx = XMMatrixPerspectiveFovLH(XM_PIDIV4, ar, 0.01f, 100.0f);
 	m_projCB->Update(m_context, m_projMtx);
 	m_camera.Zoom(0,5);
-	UpdateCamera();
+	UpdateCamera(m_camera.GetViewMatrix());
 }
 
 void Room::InitializeTextures()
@@ -125,6 +125,8 @@ void Room::CreateScene()
 	float deg30toRad = 0.523599;
 	transformMetal = XMMatrixRotationX(deg30toRad) * metal * XMMatrixRotationY(-XM_PIDIV2) * XMMatrixTranslation(0.5f, -(2-(sqrt(3)/2)), 0.0f);
 	m_metal.setWorldMatrix(transformMetal);
+	XMVECTOR det;
+	m_mirrorMtx = XMMatrixInverse(&det, transformMetal) * XMMatrixScaling(1, 1, -1) * transformMetal;
 	//walls
 	m_walls[0] = loader.GetQuad(4.0f);
 	for (auto i = 1; i < 6; ++i)
@@ -191,17 +193,50 @@ void Room::InitializeRenderStates()
 
 	rsDesc.CullMode = D3D11_CULL_NONE;
 	m_rsCullBack = m_device.CreateRasterizerState(rsDesc);
+	///////////////////MIRROR
 
-	auto bsDesc = m_device.DefaultBlendDesc();
+	D3D11_DEPTH_STENCIL_DESC dssDesc = m_device.DefaultDepthStencilDesc();
+
+	/***********************dssWRITE ***************/
+	dssDesc.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+	dssDesc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_REPLACE;
+	dssDesc.StencilEnable = true;
+
+	dssDesc.BackFace.StencilFunc = D3D11_COMPARISON_NEVER;
+
+	dssDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+
+	//Setup depth stencil state for writing
+	m_dssWrite = m_device.CreateDepthStencilState(dssDesc);
+	/********************** dssTest *********************/
+	dssDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+	dssDesc.FrontFace.StencilFunc = D3D11_COMPARISON_EQUAL;
+	dssDesc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
+
+
+	//Setup depth stencil state for testing
+	m_dssTest = m_device.CreateDepthStencilState(dssDesc);
+
+	//D3D11_RASTERIZER_DESC rsDesc = m_device.DefaultRasterizerDesc();
+	rsDesc.FrontCounterClockwise = true;
+
+
+	/////////
+	D3D11_BLEND_DESC bsDesc = m_device.DefaultBlendDesc();
+	//Setup alpha blending  http://www.gamedev.net/topic/657801-directx-11-alpha-blending/
 	bsDesc.RenderTarget[0].BlendEnable = true;
 	bsDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
 	bsDesc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
 	bsDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+	bsDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
+	bsDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
+	bsDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+	bsDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 	m_bsAlpha = m_device.CreateBlendState(bsDesc);
 
-	auto dssDesc = m_device.DefaultDepthStencilDesc();
+/*	auto dssDesc = m_device.DefaultDepthStencilDesc();
 	dssDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
-	m_dssNoWrite = m_device.CreateDepthStencilState(dssDesc);
+	m_dssNoWrite = m_device.CreateDepthStencilState(dssDesc);*/
 }
 
 bool Room::LoadContent()
@@ -266,10 +301,10 @@ void Room::UnloadContent()
 
 }
 
-void Room::UpdateCamera() const
+void Room::UpdateCamera(const XMMATRIX& view) const
 {
-	XMMATRIX view;
-	m_camera.GetViewMatrix(view);
+	/*XMMATRIX view;
+	m_camera.GetViewMatrix(view);*/
 	m_viewCB->Update(m_context, view);
 	m_cameraPosCB->Update(m_context, m_camera.GetPosition());
 }
@@ -341,8 +376,11 @@ void Room::Update(float dt)
 		else
 			change = false;
 		prevState = currentState;
-		if (change)
-			UpdateCamera();
+		if (change) {
+			XMMATRIX view;
+			m_camera.GetViewMatrix(view);
+			UpdateCamera(view);
+		}
 	}
 	m_particles->Update(m_context, dt, m_camera.GetPosition());
 }
@@ -357,7 +395,7 @@ void Room::DrawWalls() const
 	m_walls[4].Render(m_context);
 	m_textureEffect->End();
 
-	//Draw ceiling
+	/*//Draw ceiling
 	m_surfaceColorCB->Update(m_context, XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f));
 	m_textureCB->Update(m_context, XMMatrixScaling(0.25f, 0.25f, 0.25f) * XMMatrixTranslation(0.5f, 0.5f, 0.0f));
 	m_colorTexEffect->Begin(m_context);
@@ -381,7 +419,7 @@ void Room::DrawWalls() const
 		m_worldCB->Update(m_context, m_walls[i].getWorldMatrix());
 		m_walls[i].Render(m_context);
 	}
-	m_textureEffect->End();
+	m_textureEffect->End();*/
 
 }
 
@@ -517,10 +555,41 @@ void gk2::Room::DrawRobot()
 
 void gk2::Room::DrawMetal()
 {
-	m_context->RSSetState(m_rsCullBack.get());
+	/*m_context->RSSetState(m_rsCullBack.get());
 	m_worldCB->Update(m_context, m_metal.getWorldMatrix());
+	m_surfaceColorCB->Update(m_context, XMFLOAT4(0.5, 0.5, 0.5, 0.5));
 	m_metal.Render(m_context);
+	m_context->RSSetState(nullptr);*/
+
+
+		m_context->OMSetBlendState(m_bsAlpha.get(), nullptr, BS_MASK);
+		m_worldCB->Update(m_context, m_metal.getWorldMatrix());
+		m_surfaceColorCB->Update(m_context, XMFLOAT4(0.8, 0.85, 0.8, 0.9));
+		m_metal.Render(m_context);
+
+		m_context->OMSetBlendState(nullptr, nullptr, BS_MASK);
+
+}
+
+void gk2::Room::DrawMirroredWorld() 
+{
+	
+	m_worldCB->Update(m_context, m_metal.getWorldMatrix());
+	m_context->OMSetDepthStencilState(m_dssWrite.get(),1);
+	m_metal.Render(m_context);
+	m_context->OMSetDepthStencilState(m_dssTest.get(),1);
+	m_context->RSSetState(m_rsCounterClockwise.get());
+
+	XMMATRIX viewMatrix = m_mirrorMtx * m_camera.GetViewMatrix();
+	UpdateCamera(viewMatrix);
+	DrawWalls();
+	DrawRobot();
+	DrawMetal();
+	m_worldCB->Update(m_context, m_lamp.getWorldMatrix());
+	m_lamp.Render(m_context);
+	UpdateCamera(m_camera.GetViewMatrix());
 	m_context->RSSetState(nullptr);
+	m_context->OMSetDepthStencilState(nullptr, 0);
 }
 
 void gk2::Room::inverse_kinematics(VertexPosNormal robotPosition, float & a1, float & a2, float & a3, float & a4, float & a5)
@@ -568,10 +637,11 @@ void gk2::Room::inverse_kinematics(VertexPosNormal robotPosition, float & a1, fl
 void Room::DrawScene()
 {
 
-	//DrawWalls();
+	DrawWalls();
 	//DrawTeapot();
 	DrawRobot();
-	DrawMetal();
+	//DrawMetal();
+	DrawMirroredWorld();
 	m_phongEffect->Begin(m_context);
 	/* //Draw shelf 
 	m_worldCB->Update(m_context, m_box.getWorldMatrix());
@@ -605,7 +675,7 @@ void Room::Render()
 
 	ResetRenderTarget();
 	m_projCB->Update(m_context, m_projMtx);
-	UpdateCamera();
+	UpdateCamera(m_camera.GetViewMatrix());
 	//Clear buffers
 	float clearColor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
 	m_context->ClearRenderTargetView(m_backBuffer.get(), clearColor);
