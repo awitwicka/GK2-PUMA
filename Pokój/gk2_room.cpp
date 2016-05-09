@@ -14,7 +14,7 @@ const float Room::TABLE_H = 1.0f;
 const float Room::TABLE_TOP_H = 0.1f;
 const float Room::TABLE_R = 1.5f;
 const XMFLOAT4 Room::TABLE_POS = XMFLOAT4(0.5f, -0.96f, 0.5f, 1.0f);
-const XMFLOAT4 Room::LIGHT_POS[2] = { XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f), XMFLOAT4(-1.0f, -1.0f, -1.0f, 1.0f) };
+const XMFLOAT4 Room::LIGHT_POS[1] = {XMFLOAT4(-1.0f, 2.6f, 0.0f, 1.0f)};
 const unsigned int Room::BS_MASK = 0xffffffff;
 
 
@@ -125,7 +125,7 @@ void Room::CreateScene()
 	auto metal = XMMatrixTranslation(0.0f, 0.0f, 2.0f);
 	float deg30toRad = 0.523599;
 	//transformMetal = XMMatrixRotationX(deg30toRad) * metal * XMMatrixRotationY(-XM_PIDIV2) * XMMatrixTranslation(0.5f, -(2-(sqrt(3)/2)), 0.0f);
-	transformMetal = XMMatrixRotationX(deg30toRad) * XMMatrixRotationY(-XM_PIDIV2) * XMMatrixTranslation(-1.5f, -(2 - (sqrt(3) / 2)), 0.0f);
+	transformMetal = XMMatrixRotationX(deg30toRad) * XMMatrixRotationY(-XM_PIDIV2) * XMMatrixTranslation(-1.5f, 0.0f, 0.0f);
 	m_metal.setWorldMatrix(transformMetal);
 	XMVECTOR det;
 	m_mirrorMtx = XMMatrixInverse(&det, transformMetal) * XMMatrixScaling(1, 1, -1) * transformMetal;
@@ -136,9 +136,9 @@ void Room::CreateScene()
 	auto wall = XMMatrixTranslation(0.0f, 0.0f, 2.0f);
 	float a = 0;
 	for (auto i = 0; i < 4; ++i, a += XM_PIDIV2)
-		m_walls[i].setWorldMatrix(wall * XMMatrixRotationY(a));
-	m_walls[4].setWorldMatrix(wall * XMMatrixRotationX(XM_PIDIV2));
-	m_walls[5].setWorldMatrix(wall * XMMatrixRotationX(-XM_PIDIV2));
+		m_walls[i].setWorldMatrix(wall * XMMatrixRotationY(a) * XMMatrixTranslation(0.0f,1.0f,0.0f));
+	m_walls[4].setWorldMatrix(wall * XMMatrixRotationX(XM_PIDIV2)* XMMatrixTranslation(0.0f, 1.0f, 0.0f));
+	m_walls[5].setWorldMatrix(wall * XMMatrixRotationX(-XM_PIDIV2)* XMMatrixTranslation(0.0f, 1.0f, 0.0f));
 	//teapot
 	m_teapot = loader.LoadMesh(L"resources/meshes/teapot.mesh");
 	auto teapotMtx = XMMatrixTranslation(0.0f, -2.3f, 0.f) * XMMatrixScaling(0.1f, 0.1f, 0.1f) *
@@ -313,7 +313,7 @@ void Room::UpdateCamera(const XMMATRIX& view) const
 
 void Room::UpdateLamp(float dt)
 {
-	auto lamp = XMMatrixTranslation(0.0f, -0.4f, 0.0f)*XMMatrixTranslation(-1.0f, 2.0f, 0.0f);
+	auto lamp = XMMatrixTranslation(0.0f, -0.4f, 0.0f)*XMMatrixTranslation(-1.0f, 2.0f, 0.0f) * XMMatrixTranslation(0.0f, 1.0f, 0.0f);
 	m_lamp.setWorldMatrix(lamp);
 }
 
@@ -351,9 +351,9 @@ void gk2::Room::UpdateRobot(float dt) //dt -> ile czasu up³yne³o
 	ParticleSystem * a = m_particles.get();
 	a->SetEmitterPos(pos);
 
-	XMStoreFloat3(&pos, XMVector3TransformCoord(XMLoadFloat4(&n4), XMMatrixTranslation(-0.5f, 1.0f, -0.5f)*transformMetal));
+	XMStoreFloat3(&pos, XMVector3TransformCoord(XMLoadFloat4(&n4), /*XMMatrixTranslation(-0.5f, 1.0f, -0.5f)*/transformMetal));
 	newPos.Pos = pos;
-
+	
 	//vector4 posit = TranslateMatrix44(-1.5, 0.25, 0) * RotateRadMatrix44(vector3(1, 1, 0), time) * vector4(0, 0, 0.5, 1);
 	//newPos.Pos = XMFLOAT3(posit.x, posit.y, posit.z);
 	newPos.Normal = XMFLOAT3(sqrt(3), 1, 0);
@@ -368,7 +368,7 @@ void gk2::Room::UpdateRobot(float dt) //dt -> ile czasu up³yne³o
 	//robot[3] = XMMatrixTranslation(l1, -dy, 0) * XMMatrixRotationZ(a3) * XMMatrixTranslation(-l1, dy, 0) * robot[2];
 	//robot[4] = XMMatrixTranslation(l1 + l2, -dy, 0) * XMMatrixRotationZ(a5) * XMMatrixTranslation(-(l1 + l2), dy, 0) * robot[3];	
 	//robot[5] = XMMatrixTranslation(0, -dy, dz) * XMMatrixRotationX(a4) * XMMatrixTranslation(0, dy, -dz) * robot[4];
-	robot[0] = XMMatrixTranslation(0.0f, -1.0f, 0.0f);
+	robot[0] = XMMatrixTranslation(0.0f, 0.0f, 0.0f);
 	robot[1] = XMMatrixRotationY(a1) * robot[0];
 	robot[2] = XMMatrixTranslation(0, -0.27, 0) * XMMatrixRotationZ(a2) * XMMatrixTranslation(0, 0.27, 0) * robot[1];
 	robot[3] = XMMatrixTranslation(0.91f, -0.27f, 0.26f) * XMMatrixRotationZ(a3) * XMMatrixTranslation(-0.91f, 0.27f, -0.26f) * robot[2];

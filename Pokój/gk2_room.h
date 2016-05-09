@@ -36,7 +36,7 @@ namespace gk2
 		static const float TABLE_TOP_H;
 		static const float TABLE_R;
 		static const DirectX::XMFLOAT4 TABLE_POS;
-		static const DirectX::XMFLOAT4 LIGHT_POS[2];
+		static const DirectX::XMFLOAT4 LIGHT_POS[1];
 		static const unsigned int BS_MASK;
 
 		Mesh m_walls[6];

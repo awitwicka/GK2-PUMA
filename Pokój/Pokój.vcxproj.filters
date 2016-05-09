@@ -102,9 +102,6 @@
     <ClCompile Include="WICTextureLoader.cpp">
       <Filter>Source Files\framework</Filter>
     </ClCompile>
-    <ClCompile Include="Mtxlib.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="gk2_particles.h">
@@ -168,12 +165,6 @@
       <Filter>Header Files\effects</Filter>
     </ClInclude>
     <ClInclude Include="WICTextureLoader.h">
-      <Filter>Header Files\framework</Filter>
-    </ClInclude>
-    <ClInclude Include="Mtxlib.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="common.h">
       <Filter>Header Files\framework</Filter>
     </ClInclude>
   </ItemGroup>
