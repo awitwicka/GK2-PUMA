@@ -10,9 +10,10 @@ using namespace DirectX;
 const D3D11_INPUT_ELEMENT_DESC ParticleVertex::Layout[ParticleVertex::LayoutElements] =
 	{
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "TEXCOORD", 0, DXGI_FORMAT_R32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "TEXCOORD", 1, DXGI_FORMAT_R32_FLOAT, 0, 16, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "TEXCOORD", 2, DXGI_FORMAT_R32_FLOAT, 0, 20, D3D11_INPUT_PER_VERTEX_DATA, 0 }
+		{ "POSITION", 1, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "TEXCOORD", 0, DXGI_FORMAT_R32_FLOAT, 0, 24, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "TEXCOORD", 1, DXGI_FORMAT_R32_FLOAT, 0, 28, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "TEXCOORD", 2, DXGI_FORMAT_R32_FLOAT, 0, 32, D3D11_INPUT_PER_VERTEX_DATA, 0 }
 	};
 
 bool ParticleComparer::operator()(const ParticleVertex& p1, const ParticleVertex& p2) const
@@ -31,8 +32,8 @@ bool ParticleComparer::operator()(const ParticleVertex& p1, const ParticleVertex
 }
 
 const XMFLOAT3 ParticleSystem::EMITTER_DIR = XMFLOAT3(0.0f, 1.0f, 0.0f);
-const float ParticleSystem::TIME_TO_LIVE = 4.0f;
-const float ParticleSystem::EMISSION_RATE = 10.0f;
+const float ParticleSystem::TIME_TO_LIVE = 0.5f;
+const float ParticleSystem::EMISSION_RATE = 100.0f;
 const float ParticleSystem::MAX_ANGLE = XM_PIDIV2 / 9.0f;
 const float ParticleSystem::MIN_VELOCITY = 0.2f;
 const float ParticleSystem::MAX_VELOCITY = 0.33f;
@@ -81,16 +82,17 @@ void ParticleSystem::SetSamplerState(const shared_ptr<ID3D11SamplerState>& sampl
 
 XMFLOAT3 ParticleSystem::RandomVelocity()
 {
-	float x, y;
+	float x, y, z;
 	do 
 	{
 		x = m_dirCoordDist(m_random);
 		y = m_dirCoordDist(m_random);
+		z = m_dirCoordDist(m_random);
 	} while (x*x + y*y > 1.0f);
 	auto a = tan(MAX_ANGLE);
-	XMFLOAT3 v(x * a, 1.0f, y * a);
+	XMFLOAT3 v(sqrt(3)+x * a, 1.0f , y * a);
 	auto velocity = XMLoadFloat3(&v);
-	auto len = m_velDist(m_random);
+	auto len = m_velDist(m_random)*10;
 	velocity = len * XMVector3Normalize(velocity);
 	XMStoreFloat3(&v, velocity);
 	return v;
@@ -101,6 +103,7 @@ void ParticleSystem::AddNewParticle()
 	Particle p;
 	//TODO: Setup initial values
 	p.Vertex.Pos = m_emitterPos;
+	p.Vertex.PrevPos = m_emitterPos;
 	p.Vertex.Age = 0.0f;
 	p.Vertex.Angle = 0.0f;
 	p.Vertex.Size = PARTICLE_SIZE;
@@ -131,8 +134,10 @@ XMFLOAT4 operator -(const XMFLOAT4& v1, const XMFLOAT4& v2)
 
 void ParticleSystem::UpdateParticle(Particle& p, float dt)
 {
+	p.Velocities.Velocity.y += -9.81f * dt;
 	//TODO: Update particle's fields
 	p.Vertex.Age += dt;
+	p.Vertex.PrevPos = p.Vertex.Pos;
 	p.Vertex.Pos = p.Vertex.Pos + p.Velocities.Velocity * dt;
 	p.Vertex.Size += PARTICLE_SCALE * PARTICLE_SIZE * dt;
 	p.Vertex.Angle += p.Velocities.AngleVelocity * dt;
@@ -191,21 +196,30 @@ void ParticleSystem::Update(shared_ptr<ID3D11DeviceContext>& context, float dt, 
 
 void ParticleSystem::Render(shared_ptr<ID3D11DeviceContext>& context) const
 {
+	//set shaders
 	context->VSSetShader(m_vs.get(), nullptr, 0);
 	context->GSSetShader(m_gs.get(), nullptr, 0);
 	context->PSSetShader(m_ps.get(), nullptr, 0);
 	context->IASetInputLayout(m_layout.get());
+
+	//set projection for geometry /view matrix for vertex
 	ID3D11Buffer* vsb[1] = { m_viewCB->getBufferObject().get() };
 	context->VSSetConstantBuffers(0, 1, vsb);
 	ID3D11Buffer* gsb[1] = { m_projCB->getBufferObject().get() };
 	context->GSSetConstantBuffers(0, 1, gsb);
+
+	//set 2 texturestogether with sampler  for pixel 
 	ID3D11ShaderResourceView* psv[2] = { m_cloudTexture.get(), m_opacityTexture.get() };
 	context->PSSetShaderResources(0, 2, psv);
 	ID3D11SamplerState* pss[1] = { m_samplerState.get() };
 	context->PSSetSamplers(0, 1, pss);
+
+	//set vertices for vertex
 	ID3D11Buffer* vb[1] = { m_vertices.get() };
 	context->IASetVertexBuffers(0, 1, vb, &STRIDE, &OFFSET);
 	context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+
+	//draw
 	context->Draw(m_particlesCount, 0);
 	context->GSSetShader(nullptr, nullptr, 0);
 }

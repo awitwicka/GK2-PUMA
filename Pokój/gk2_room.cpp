@@ -344,7 +344,7 @@ void gk2::Room::UpdateRobot(float dt) //dt -> ile czasu up³yne³o
 
 	XMMATRIX robot[6];
 	float l1 = .91f, l2 = .81f, l3 = .33f, dy = .27f, dz = .26f;
-	auto robot_startpos = XMMatrixTranslation(0.0f, -1.0f, 0.0f) * XMMatrixScaling(1.0, 1.0, -1.0);
+	auto robot_startpos = XMMatrixTranslation(0.0f, -1.0f, 0.0f) *XMMatrixScaling(1.0, 1.0, -1.0);
 	robot[0] = robot_startpos;
 	robot[1] = XMMatrixRotationY(a1) * robot[0];
 	robot[2] = XMMatrixTranslation(0, -dy, 0) * XMMatrixRotationZ(a2) * XMMatrixTranslation(0, +dy, 0) * robot[1];

@@ -14,13 +14,14 @@ namespace gk2
 	struct ParticleVertex
 	{
 		DirectX::XMFLOAT3 Pos;
+		DirectX::XMFLOAT3 PrevPos;
 		float Age;
 		float Angle;
 		float Size;
-		static const unsigned int LayoutElements = 4;
+		static const unsigned int LayoutElements = 5;
 		static const D3D11_INPUT_ELEMENT_DESC Layout[LayoutElements];
 
-		ParticleVertex() : Pos(0.0f, 0.0f, 0.0f), Age(0.0f), Angle(0.0f), Size(0.0f) { }
+		ParticleVertex() : Pos(0.0f, 0.0f, 0.0f), PrevPos(0.0f, 0.0f, 0.0f), Age(0.0f), Angle(0.0f), Size(0.0f) { }
 	};
 	
 	struct ParticleVelocities
