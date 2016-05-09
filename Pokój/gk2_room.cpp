@@ -407,6 +407,40 @@ void Room::Update(float dt)
 			UpdateCamera(view);
 		}
 	}
+	
+	KeyboardState keyboardState;
+	if (m_keyboard->GetState(keyboardState)) {
+		bool change = true;
+		if (keyboardState.isKeyDown(DIK_W))
+		{
+			m_camera.Zoom(0, -dt*5.f);
+		}
+		if (keyboardState.isKeyDown(DIK_S))
+		{
+			m_camera.Zoom(0, dt*5.f);
+		}
+		if (keyboardState.isKeyDown(DIK_A))
+		{
+			m_camera.Zoom(dt*4.f,0);
+		}
+		if (keyboardState.isKeyDown(DIK_D))
+		{
+			m_camera.Zoom(-dt*4.f,0);
+		}
+		if (keyboardState.isKeyDown(DIK_Q))
+		{
+			m_camera.updateYPos(-dt*4.f);
+		}
+		if (keyboardState.isKeyDown(DIK_E))
+		{
+			m_camera.updateYPos(dt*4.f);
+		}
+		if (change) {
+			XMMATRIX view;
+			m_camera.GetViewMatrix(view);
+			UpdateCamera(view);
+		}
+	}
 	m_particles->Update(m_context, dt, m_camera.GetPosition());
 }
 
