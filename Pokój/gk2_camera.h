@@ -19,6 +19,7 @@ namespace gk2
 		DirectX::XMVECTOR getForwardDir() const;
 		DirectX::XMVECTOR getRightDir() const;
 		DirectX::XMVECTOR getUpDir() const;
+		void updateYPos(float dt);
 
 	private:
 		float m_angleX;

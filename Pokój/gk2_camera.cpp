@@ -37,7 +37,7 @@ void Camera::Zoom(float dx, float dz)
 	XMFLOAT3 temp;
 	
 	//XMStoreFloat3(&temp, forward*d + right * 0);
-	XMStoreFloat3(&temp, forward*dz + up*dz);//+ up*dz
+	XMStoreFloat3(&temp, forward*dz + up*dz + right*dx);//+ up*dz
 	m_zPos += temp.z;
 	m_xPos += temp.x;
 	m_yPos += temp.y;
@@ -49,8 +49,8 @@ void Camera::Zoom(float dx, float dz)
 
 void Camera::Rotate(float dx, float dy)
 {
-	m_angleX = XMScalarModAngle(m_angleX + dx);
-	m_angleY = XMScalarModAngle(m_angleY + dy);
+	m_angleX = XMScalarModAngle(m_angleX - dx);
+	m_angleY = XMScalarModAngle(m_angleY - dy);
 }
 
 XMMATRIX Camera::GetViewMatrix() const
@@ -116,7 +116,8 @@ XMVECTOR Camera::getForwardDir() const
 XMVECTOR Camera::getRightDir() const
 {
 	XMVECTOR right = XMVectorSet(1, 0, 0, 0);
-	right = XMVector3TransformNormal(right, XMMatrixRotationY(m_angleY));
+	right = XMVector3TransformNormal(right, XMMatrixRotationY(-m_angleY));
+
 	return right;
 }
 
@@ -128,4 +129,8 @@ XMVECTOR Camera::getUpDir() const
 	XMStoreFloat3(&n3, up);
 	up = XMVectorSet(0, n3.y,0,0);
 	return up;
+}
+void Camera::updateYPos(float dt)
+{
+	m_yPos += dt;
 }
