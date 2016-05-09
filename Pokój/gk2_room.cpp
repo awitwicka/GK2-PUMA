@@ -4,6 +4,8 @@
 #include "gk2_utils.h"
 #include <array>
 
+
+
 using namespace std;
 using namespace gk2;
 using namespace DirectX;
@@ -317,40 +319,61 @@ void Room::UpdateLamp(float dt)
 
 void gk2::Room::UpdateRobot(float dt) //dt -> ile czasu up³yne³o
 {
+	/*static float t = 0;
+	t += dt;
+	float a1 = XM_PIDIV2 * t;
+	float a2 = XM_PIDIV2 / 2 * t;
+	float a3 = XM_PIDIV2 / 2 * t;
+	float a4 = XM_PIDIV2 / 2 * t;
+	float a5 = XM_PIDIV2 / 2 * t;
+
+	vector4 pos = TranslateMatrix44(-1.5, 0.25, 0) * RotateRadMatrix44(vector3(1, 1, 0), t) * vector4(0, 0, 0.5, 1);
+	//inverse_kinematics(vector3(pos.x, pos.y, pos.z), vector3(1, 1, 0), a1, a2, a3, a4, a5);
+	
+	VertexPosNormal newPos;
+	newPos.Pos = XMFLOAT3(pos.x, pos.y, pos.z);
+	newPos.Normal = XMFLOAT3(1, 1, 0);
+	}*/
+
 	static auto time = 0.0f;
 	time += dt;
-
+	float a1, a2, a3, a4, a5;
 	VertexPosNormal newPos;
+
 	float circleRadius = 1/2.0f;
 	float x = circleRadius*cos(time*XM_2PI);
 	float y = circleRadius*sin(time*XM_2PI);
-	/////
-
-
 	//transform from x, y, z=0 to metal plane
 	XMFLOAT3 pos = XMFLOAT3(x, y, 0);
 	XMFLOAT4 n4 = XMFLOAT4(pos.x, pos.y, pos.z, 1.0);
-
 	XMStoreFloat3(&pos, XMVector3TransformCoord(XMLoadFloat4(&n4), transformMetal));
 	//set position/normal of robot arm
-	//newPos.Pos = XMFLOAT3(-1.5f, x, y);
 	ParticleSystem * a = m_particles.get();
 	a->SetEmitterPos(pos);
-	newPos.Pos = pos;
-	newPos.Normal = XMFLOAT3(sqrt(3), -1.0f, 0.0f);
 
-	float a1, a2, a3, a4, a5;
+	XMStoreFloat3(&pos, XMVector3TransformCoord(XMLoadFloat4(&n4), XMMatrixTranslation(-0.5f, 1.0f, -0.5f)*transformMetal));
+	newPos.Pos = pos;
+
+	//vector4 posit = TranslateMatrix44(-1.5, 0.25, 0) * RotateRadMatrix44(vector3(1, 1, 0), time) * vector4(0, 0, 0.5, 1);
+	//newPos.Pos = XMFLOAT3(posit.x, posit.y, posit.z);
+	newPos.Normal = XMFLOAT3(sqrt(3), 1, 0);
 	inverse_kinematics(newPos, a1, a2, a3, a4, a5);
 
 	XMMATRIX robot[6];
-	float l1 = .91f, l2 = .81f, l3 = .33f, dy = .27f, dz = .26f;
-	auto robot_startpos = XMMatrixTranslation(0.0f, -1.0f, 0.0f) *XMMatrixScaling(1.0, 1.0, -1.0);
-	robot[0] = robot_startpos;
+	//float l1 = .91f, l2 = .81f, l3 = .33f, dy = .27f, dz = .26f;
+	//auto robot_startpos = XMMatrixTranslation(0.0f, -1.0f, 0.0f) *XMMatrixScaling(1.0, 1.0, -1.0);
+	//robot[0] = robot_startpos;
+	//robot[1] = XMMatrixRotationY(a1) * robot[0];
+	//robot[2] = XMMatrixTranslation(0, -dy, 0) * XMMatrixRotationZ(a2) * XMMatrixTranslation(0, +dy, 0) * robot[1];
+	//robot[3] = XMMatrixTranslation(l1, -dy, 0) * XMMatrixRotationZ(a3) * XMMatrixTranslation(-l1, dy, 0) * robot[2];
+	//robot[4] = XMMatrixTranslation(l1 + l2, -dy, 0) * XMMatrixRotationZ(a5) * XMMatrixTranslation(-(l1 + l2), dy, 0) * robot[3];	
+	//robot[5] = XMMatrixTranslation(0, -dy, dz) * XMMatrixRotationX(a4) * XMMatrixTranslation(0, dy, -dz) * robot[4];
+	robot[0] = XMMatrixTranslation(0.0f, -1.0f, 0.0f);
 	robot[1] = XMMatrixRotationY(a1) * robot[0];
-	robot[2] = XMMatrixTranslation(0, -dy, 0) * XMMatrixRotationZ(a2) * XMMatrixTranslation(0, +dy, 0) * robot[1];
-	robot[3] = XMMatrixTranslation(l1, -dy, 0) * XMMatrixRotationZ(a3) * XMMatrixTranslation(-l1, dy, 0) * robot[2];
-	robot[4] = XMMatrixTranslation(l1 + l2, -dy, 0) * XMMatrixRotationZ(a5) * XMMatrixTranslation(-(l1 + l2), dy, 0) * robot[3];	
-	robot[5] = XMMatrixTranslation(0, -dy, dz) * XMMatrixRotationX(a4) * XMMatrixTranslation(0, dy, -dz) * robot[4];
+	robot[2] = XMMatrixTranslation(0, -0.27, 0) * XMMatrixRotationZ(a2) * XMMatrixTranslation(0, 0.27, 0) * robot[1];
+	robot[3] = XMMatrixTranslation(0.91f, -0.27f, 0.26f) * XMMatrixRotationZ(a3) * XMMatrixTranslation(-0.91f, 0.27f, -0.26f) * robot[2];
+	robot[4] = XMMatrixTranslation(0, -0.27, 0.26f) * XMMatrixRotationX(a4) * XMMatrixTranslation(0, 0.27, -0.26f) * robot[3];
+	robot[5] = XMMatrixTranslation(1.72f, -0.27f, 0) * XMMatrixRotationZ(a5) * XMMatrixTranslation(-1.72f, 0.27f, 0) * robot[4];
 	for (auto i = 0; i < 6; i++) {
 		m_robot[i].setWorldMatrix(robot[i]);
 	}
