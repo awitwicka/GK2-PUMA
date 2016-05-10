@@ -32,8 +32,8 @@ bool ParticleComparer::operator()(const ParticleVertex& p1, const ParticleVertex
 }
 
 const XMFLOAT3 ParticleSystem::EMITTER_DIR = XMFLOAT3(0.0f, 1.0f, 0.0f);
-const float ParticleSystem::TIME_TO_LIVE = 0.5f;
-const float ParticleSystem::EMISSION_RATE = 100.0f;
+const float ParticleSystem::TIME_TO_LIVE = 1.0f;
+const float ParticleSystem::EMISSION_RATE = 40.0f;
 const float ParticleSystem::MAX_ANGLE = XM_PIDIV2 / 9.0f;
 const float ParticleSystem::MIN_VELOCITY = 0.2f;
 const float ParticleSystem::MAX_VELOCITY = 0.33f;
@@ -41,7 +41,7 @@ const float ParticleSystem::PARTICLE_SIZE = 0.08f;
 const float ParticleSystem::PARTICLE_SCALE = 1.0f;
 const float ParticleSystem::MIN_ANGLE_VEL = -XM_PI;
 const float ParticleSystem::MAX_ANGLE_VEL = XM_PI;
-const int ParticleSystem::MAX_PARTICLES = 500;
+const int ParticleSystem::MAX_PARTICLES = 1000;
 
 const unsigned int ParticleSystem::STRIDE = sizeof(ParticleVertex);
 const unsigned int ParticleSystem::OFFSET = 0;
@@ -90,7 +90,7 @@ XMFLOAT3 ParticleSystem::RandomVelocity()
 		z = m_dirCoordDist(m_random);
 	} while (x*x + y*y > 1.0f);
 	auto a = tan(MAX_ANGLE);
-	XMFLOAT3 v(sqrt(3)+x * a, 1.0f , y * a);
+	XMFLOAT3 v((sqrt(3)+x) * a, 1.0f , y * a);
 	auto velocity = XMLoadFloat3(&v);
 	auto len = m_velDist(m_random)*10;
 	velocity = len * XMVector3Normalize(velocity);
@@ -103,7 +103,7 @@ void ParticleSystem::AddNewParticle()
 	Particle p;
 	//TODO: Setup initial values
 	p.Vertex.Pos = m_emitterPos;
-	p.Vertex.PrevPos = m_emitterPos;
+	p.Vertex.PrevPos = m_emitterPos ;
 	p.Vertex.Age = 0.0f;
 	p.Vertex.Angle = 0.0f;
 	p.Vertex.Size = PARTICLE_SIZE;
@@ -134,11 +134,26 @@ XMFLOAT4 operator -(const XMFLOAT4& v1, const XMFLOAT4& v2)
 
 void ParticleSystem::UpdateParticle(Particle& p, float dt)
 {
-	p.Velocities.Velocity.y += -9.81f * dt;
+	const float GRAVITY_CONST = 9.81f;
+	XMFLOAT3 down(0, -1, 0);
+	float mass = 1.5f;
+
+	XMFLOAT3 gravityForce = down * GRAVITY_CONST;
+	XMFLOAT3 acceleration;
+	acceleration.x = gravityForce.x / mass;
+	acceleration.y = gravityForce.y / mass;
+	acceleration.z = gravityForce.z / mass;
+
+	p.Velocities.Velocity = p.Velocities.Velocity + acceleration * dt;
+
+	//p.Velocities.Velocity.y += -9.81f * dt;
 	//TODO: Update particle's fields
 	p.Vertex.Age += dt;
-	p.Vertex.PrevPos = p.Vertex.Pos;
-	p.Vertex.Pos = p.Vertex.Pos + p.Velocities.Velocity * dt;
+	if (p.Vertex.Age >= p.Vertex.count*0.05) {
+		p.Vertex.PrevPos = p.Vertex.Pos;
+		p.Vertex.count++;
+	}
+	p.Vertex.Pos = p.Vertex.Pos + p.Velocities.Velocity * (dt);
 	p.Vertex.Size += PARTICLE_SCALE * PARTICLE_SIZE * dt;
 	p.Vertex.Angle += p.Velocities.AngleVelocity * dt;
 }

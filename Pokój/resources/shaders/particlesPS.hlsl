@@ -12,6 +12,9 @@ struct PSInput
 float4 main(PSInput i) : SV_TARGET
 {
 	float4 color = cloudMap.Sample(colorSampler, i.tex1);
+	color.x = 1;
+	color.y = 1;
+	color.z = 0;
 	float4 opacity = opacityMap.Sample(colorSampler, i.tex2);
 	float alpha = color.a * opacity.a * 0.3f;
 	if (alpha == 0.0f)

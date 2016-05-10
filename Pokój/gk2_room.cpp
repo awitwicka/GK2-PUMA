@@ -139,32 +139,9 @@ void Room::CreateScene()
 		m_walls[i].setWorldMatrix(wall * XMMatrixRotationY(a) * XMMatrixTranslation(0.0f,1.0f,0.0f));
 	m_walls[4].setWorldMatrix(wall * XMMatrixRotationX(XM_PIDIV2)* XMMatrixTranslation(0.0f, 1.0f, 0.0f));
 	m_walls[5].setWorldMatrix(wall * XMMatrixRotationX(-XM_PIDIV2)* XMMatrixTranslation(0.0f, 1.0f, 0.0f));
-	//teapot
-	m_teapot = loader.LoadMesh(L"resources/meshes/teapot.mesh");
-	auto teapotMtx = XMMatrixTranslation(0.0f, -2.3f, 0.f) * XMMatrixScaling(0.1f, 0.1f, 0.1f) *
-						 XMMatrixRotationY(-XM_PIDIV2) * XMMatrixTranslation(-1.3f, -0.74f, -0.6f);
-	m_teapot.setWorldMatrix(teapotMtx);
-	m_debugSphere = loader.GetSphere(8, 16, 0.3f);
-	m_debugSphere.setWorldMatrix(XMMatrixRotationY(-XM_PIDIV2) * XMMatrixTranslation(-1.3f, -0.74f, -0.6f));
-	//box
-	m_box = loader.GetBox();
-	m_box.setWorldMatrix(XMMatrixTranslation(-1.4f, -1.46f, -0.6f));
 	//lamp
 	m_lamp = loader.LoadMesh(L"resources/meshes/lamp.mesh");
 	UpdateLamp(0.0f);
-	//chair
-	m_chairSeat = loader.LoadMesh(L"resources/meshes/chair_seat.mesh");
-	m_chairBack = loader.LoadMesh(L"resources/meshes/chair_back.mesh");
-	auto chair = XMMatrixRotationY(XM_PI + XM_PI/9 /*20 deg*/) * XMMatrixTranslation(-0.1f, -1.06f, -1.3f);
-	m_chairSeat.setWorldMatrix(chair);
-	m_chairBack.setWorldMatrix(chair);
-	//monitor
-	m_monitor = loader.LoadMesh(L"resources/meshes/monitor.mesh");
-	m_screen = loader.LoadMesh(L"resources/meshes/screen.mesh");
-	auto monitor = XMMatrixRotationY(XM_PIDIV4) *
-					   XMMatrixTranslation(TABLE_POS.x, TABLE_POS.y + 0.42f, TABLE_POS.z);
-	m_monitor.setWorldMatrix(monitor);
-	m_screen.setWorldMatrix(monitor);
 	//table 
 	m_tableLegs[0] = loader.GetCylinder(4, 9, 0.1f, TABLE_H - TABLE_TOP_H);
 	for (auto i = 1; i < 4; ++i)
@@ -193,7 +170,7 @@ void Room::InitializeRenderStates()
 	rsDesc.CullMode = D3D11_CULL_FRONT;
 	m_rsCullFront = m_device.CreateRasterizerState(rsDesc);
 
-	rsDesc.CullMode = D3D11_CULL_NONE;
+	rsDesc.CullMode = D3D11_CULL_BACK;
 	m_rsCullBack = m_device.CreateRasterizerState(rsDesc);
 	///////////////////MIRROR
 
@@ -319,22 +296,6 @@ void Room::UpdateLamp(float dt)
 
 void gk2::Room::UpdateRobot(float dt) //dt -> ile czasu up³yne³o
 {
-	/*static float t = 0;
-	t += dt;
-	float a1 = XM_PIDIV2 * t;
-	float a2 = XM_PIDIV2 / 2 * t;
-	float a3 = XM_PIDIV2 / 2 * t;
-	float a4 = XM_PIDIV2 / 2 * t;
-	float a5 = XM_PIDIV2 / 2 * t;
-
-	vector4 pos = TranslateMatrix44(-1.5, 0.25, 0) * RotateRadMatrix44(vector3(1, 1, 0), t) * vector4(0, 0, 0.5, 1);
-	//inverse_kinematics(vector3(pos.x, pos.y, pos.z), vector3(1, 1, 0), a1, a2, a3, a4, a5);
-	
-	VertexPosNormal newPos;
-	newPos.Pos = XMFLOAT3(pos.x, pos.y, pos.z);
-	newPos.Normal = XMFLOAT3(1, 1, 0);
-	}*/
-
 	static auto time = 0.0f;
 	time += dt;
 	float a1, a2, a3, a4, a5;
@@ -454,7 +415,7 @@ void Room::DrawWalls() const
 	m_walls[4].Render(m_context);
 	m_textureEffect->End();
 
-	/*//Draw ceiling
+	//Draw ceiling
 	m_surfaceColorCB->Update(m_context, XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f));
 	m_textureCB->Update(m_context, XMMatrixScaling(0.25f, 0.25f, 0.25f) * XMMatrixTranslation(0.5f, 0.5f, 0.0f));
 	m_colorTexEffect->Begin(m_context);
@@ -478,7 +439,7 @@ void Room::DrawWalls() const
 		m_worldCB->Update(m_context, m_walls[i].getWorldMatrix());
 		m_walls[i].Render(m_context);
 	}
-	m_textureEffect->End();*/
+	m_textureEffect->End();
 
 }
 
@@ -551,12 +512,13 @@ void Room::DrawTableLegs(XMVECTOR camVec)
 	}
 }
 
-void Room::DrawParticles()
-{
+void Room::DrawParticles(bool isMirror)
+{/*
 	m_context->OMSetBlendState(m_bsAlpha.get(), nullptr, BS_MASK);
 	m_context->OMSetDepthStencilState(m_dssNoWrite.get(), 0);
 
-	m_surfaceColorCB->Update(m_context, XMFLOAT4(0.1f, 0.1f, 0.1f, 0.9f));
+	m_particles->Render(m_context);*/
+/*	m_surfaceColorCB->Update(m_context, XMFLOAT4(0.1f, 0.1f, 0.1f, 0.9f));
 	auto v = m_camera.GetPosition();
 	auto camVec = XMVector3Normalize(XMLoadFloat4(&v) - XMLoadFloat4(&TABLE_POS));
 	v = XMFLOAT4(0.0f, 1.0f, 0.0f, 0.0f);
@@ -589,25 +551,32 @@ void Room::DrawParticles()
 		//m_tableSide.Render(m_context);
 		m_phongEffect->End();
 	}
+	*/ /*
 	m_surfaceColorCB->Update(m_context, XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f));
 	m_context->OMSetDepthStencilState(nullptr, 0);
+	m_context->OMSetBlendState(nullptr, nullptr, BS_MASK);*/
+	m_context->OMSetBlendState(m_bsAlpha.get(), nullptr, BS_MASK);
+	//m_context->OMSetDepthStencilState(m_dssNoWrite.get(), 0);
+	m_particles->Render(m_context);
+	//m_context->OMSetDepthStencilState(nullptr, 0);
 	m_context->OMSetBlendState(nullptr, nullptr, BS_MASK);
 }
 
-void gk2::Room::DrawRobot()
+void gk2::Room::DrawRobot(bool isMirror)
 {
 	//TODO: Replace with environment map effect
 	m_phongEffect->Begin(m_context);
 	m_surfaceColorCB->Update(m_context, XMFLOAT4(0.8f, 0.7f, 0.65f, 1.0f));
-	m_context->RSSetState(m_rsCullBack.get());
+	/*if (!isMirror)
+		m_context->RSSetState(m_rsCullBack.get());*/
 
 	for (auto i = 0; i < 6; i++) 
 	{
 		m_worldCB->Update(m_context, m_robot[i].getWorldMatrix());
 		m_robot[i].Render(m_context);
 	}
-
-	m_context->RSSetState(nullptr);
+	/*if (isMirror)
+		m_context->RSSetState(nullptr);*/
 	m_surfaceColorCB->Update(m_context, XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f));
 	m_phongEffect->End();
 }
@@ -622,33 +591,43 @@ void gk2::Room::DrawMetal()
 
 
 		m_context->OMSetBlendState(m_bsAlpha.get(), nullptr, BS_MASK);
+		m_surfaceColorCB->Update(m_context, XMFLOAT4(0.8, 0.85, 0.8, 0.8));
 		m_worldCB->Update(m_context, m_metal.getWorldMatrix());
-		m_surfaceColorCB->Update(m_context, XMFLOAT4(0.8, 0.85, 0.8, 0.9));
 		m_metal.Render(m_context);
-
 		m_context->OMSetBlendState(nullptr, nullptr, BS_MASK);
 
 }
 
 void gk2::Room::DrawMirroredWorld() 
 {
+	m_phongEffect->Begin(m_context);
+
+	//substitute with draw metal 
+	m_context->OMSetDepthStencilState(m_dssWrite.get(), 1);
 	
 	m_worldCB->Update(m_context, m_metal.getWorldMatrix());
-	m_context->OMSetDepthStencilState(m_dssWrite.get(),1);
 	m_metal.Render(m_context);
+	
 	m_context->OMSetDepthStencilState(m_dssTest.get(),1);
-	m_context->RSSetState(m_rsCounterClockwise.get());
-
+	
+	//m_context->RSSetState(m_rsCounterClockwise.get());
 	XMMATRIX viewMatrix = m_mirrorMtx * m_camera.GetViewMatrix();
 	UpdateCamera(viewMatrix);
-	DrawWalls();
-	DrawRobot();
-	DrawMetal();
+
+	m_worldCB->Update(m_context, m_metal.getWorldMatrix());
+	m_metal.Render(m_context);
 	m_worldCB->Update(m_context, m_lamp.getWorldMatrix());
 	m_lamp.Render(m_context);
-	UpdateCamera(m_camera.GetViewMatrix());
-	m_context->RSSetState(nullptr);
+	DrawWalls();
+	DrawRobot();
+
+	m_phongEffect->End();
+
+	//m_context->RSSetState(nullptr);
+	DrawParticles(true);
+	//m_context->RSSetState(nullptr);
 	m_context->OMSetDepthStencilState(nullptr, 0);
+	UpdateCamera(m_camera.GetViewMatrix());
 }
 
 void gk2::Room::inverse_kinematics(VertexPosNormal robotPosition, float & a1, float & a2, float & a3, float & a4, float & a5)
@@ -695,34 +674,19 @@ void gk2::Room::inverse_kinematics(VertexPosNormal robotPosition, float & a1, fl
 
 void Room::DrawScene()
 {
-
-	DrawWalls();
-	//DrawTeapot();
-	DrawRobot();
-	//DrawMetal();
 	DrawMirroredWorld();
 	m_phongEffect->Begin(m_context);
-	/* //Draw shelf 
-	m_worldCB->Update(m_context, m_box.getWorldMatrix());
-	m_box.Render(m_context);
-	*/ //Draw lamp
+
+	DrawMetal();
 	m_worldCB->Update(m_context, m_lamp.getWorldMatrix());
 	m_lamp.Render(m_context);
-	/* //Draw chair seat 
-	m_worldCB->Update(m_context, m_chairSeat.getWorldMatrix());
-	m_chairSeat.Render(m_context);
-	//Draw chairframe
-	m_worldCB->Update(m_context, m_chairBack.getWorldMatrix());
-	m_chairBack.Render(m_context);
-	//Draw monitor
-	m_worldCB->Update(m_context, m_monitor.getWorldMatrix());
-	m_monitor.Render(m_context);
-	//Draw screen
-	m_worldCB->Update(m_context, m_screen.getWorldMatrix());
-	m_screen.Render(m_context);
-	*/
+	DrawWalls();
+	DrawRobot();
+	
+
 	m_phongEffect->End();
-	DrawParticles();
+
+	DrawParticles(false);
 }
 
 void Room::Render()

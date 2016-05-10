@@ -18,6 +18,7 @@ namespace gk2
 		float Age;
 		float Angle;
 		float Size;
+		int count = 0;
 		static const unsigned int LayoutElements = 5;
 		static const D3D11_INPUT_ELEMENT_DESC Layout[LayoutElements];
 
