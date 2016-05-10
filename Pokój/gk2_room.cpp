@@ -199,6 +199,8 @@ void Room::InitializeRenderStates()
 	//D3D11_RASTERIZER_DESC rsDesc = m_device.DefaultRasterizerDesc();
 	rsDesc.FrontCounterClockwise = true;
 
+	//Set rasterizer state front face to ccw
+	m_rsCounterClockwise = m_device.CreateRasterizerState(rsDesc);
 
 	/////////
 	D3D11_BLEND_DESC bsDesc = m_device.DefaultBlendDesc();
@@ -210,12 +212,11 @@ void Room::InitializeRenderStates()
 	bsDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
 	bsDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
 	bsDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
-	bsDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 	m_bsAlpha = m_device.CreateBlendState(bsDesc);
 
 /*	auto dssDesc = m_device.DefaultDepthStencilDesc();
-	dssDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
-	m_dssNoWrite = m_device.CreateDepthStencilState(dssDesc);*/
+	dssDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;*/
+	m_dssNoWrite = m_device.CreateDepthStencilState(dssDesc);
 }
 
 bool Room::LoadContent()
@@ -405,8 +406,12 @@ void Room::Update(float dt)
 	m_particles->Update(m_context, dt, m_camera.GetPosition());
 }
 
-void Room::DrawWalls() const
+void Room::DrawWalls(bool isMirror) const
 {
+	if (isMirror)
+	{
+		m_context->RSSetState(m_rsCounterClockwise.get());
+	}
 	//Draw floor
 	m_textureCB->Update(m_context, XMMatrixScaling(0.25f, 4.0f, 1.0f) * XMMatrixTranslation(0.5f, 0.5f, 0.0f));
 	m_textureEffect->SetTexture(m_woodTexture);
@@ -440,7 +445,10 @@ void Room::DrawWalls() const
 		m_walls[i].Render(m_context);
 	}
 	m_textureEffect->End();
-
+	if (isMirror)
+	{
+		m_context->RSSetState(nullptr);
+	}
 }
 
 void Room::DrawTeapot() const
@@ -567,29 +575,22 @@ void gk2::Room::DrawRobot(bool isMirror)
 	//TODO: Replace with environment map effect
 	m_phongEffect->Begin(m_context);
 	m_surfaceColorCB->Update(m_context, XMFLOAT4(0.8f, 0.7f, 0.65f, 1.0f));
-	/*if (!isMirror)
-		m_context->RSSetState(m_rsCullBack.get());*/
+	if (isMirror)
+		m_context->RSSetState(m_rsCullBack.get());
 
 	for (auto i = 0; i < 6; i++) 
 	{
 		m_worldCB->Update(m_context, m_robot[i].getWorldMatrix());
 		m_robot[i].Render(m_context);
 	}
-	/*if (isMirror)
-		m_context->RSSetState(nullptr);*/
+	if (isMirror)
+		m_context->RSSetState(nullptr);
 	m_surfaceColorCB->Update(m_context, XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f));
 	m_phongEffect->End();
 }
 
 void gk2::Room::DrawMetal()
 {
-	/*m_context->RSSetState(m_rsCullBack.get());
-	m_worldCB->Update(m_context, m_metal.getWorldMatrix());
-	m_surfaceColorCB->Update(m_context, XMFLOAT4(0.5, 0.5, 0.5, 0.5));
-	m_metal.Render(m_context);
-	m_context->RSSetState(nullptr);*/
-
-
 		m_context->OMSetBlendState(m_bsAlpha.get(), nullptr, BS_MASK);
 		m_surfaceColorCB->Update(m_context, XMFLOAT4(0.8, 0.85, 0.8, 0.8));
 		m_worldCB->Update(m_context, m_metal.getWorldMatrix());
@@ -610,22 +611,19 @@ void gk2::Room::DrawMirroredWorld()
 	
 	m_context->OMSetDepthStencilState(m_dssTest.get(),1);
 	
-	//m_context->RSSetState(m_rsCounterClockwise.get());
+	m_context->RSSetState(m_rsCounterClockwise.get());
 	XMMATRIX viewMatrix = m_mirrorMtx * m_camera.GetViewMatrix();
 	UpdateCamera(viewMatrix);
 
-	m_worldCB->Update(m_context, m_metal.getWorldMatrix());
-	m_metal.Render(m_context);
+	DrawMetal();	
+	DrawWalls();	
+	DrawRobot();
 	m_worldCB->Update(m_context, m_lamp.getWorldMatrix());
 	m_lamp.Render(m_context);
-	DrawWalls();
-	DrawRobot();
-
-	m_phongEffect->End();
-
-	//m_context->RSSetState(nullptr);
+	
+	m_context->RSSetState(nullptr);
 	DrawParticles(true);
-	//m_context->RSSetState(nullptr);
+	m_phongEffect->End();
 	m_context->OMSetDepthStencilState(nullptr, 0);
 	UpdateCamera(m_camera.GetViewMatrix());
 }
@@ -658,14 +656,7 @@ void gk2::Room::inverse_kinematics(VertexPosNormal robotPosition, float & a1, fl
 	a2 = -atan2(pos2.y, sqrtf(pos2.x*pos2.x + pos2.z*pos2.z)) - atan2(l, k);
 	
 	XMFLOAT3 normal1;
-	//XMFLOAT4 n4 = XMFLOAT4(robotPosition.Normal.x, robotPosition.Normal.y, robotPosition.Normal.z, .0f);
-	//auto n = XMLoadFloat4(&n4);
-	//XMStoreFloat3(&normal1, XMVector4Transform(n, XMMatrixRotationY(-a1)));
 	XMStoreFloat3(&normal1, XMVector3TransformNormal(XMLoadFloat3(&robotPosition.Normal), XMMatrixRotationY(-a1)));
-
-	//n4 = XMFLOAT4(normal1.x, normal1.y, normal1.z, .0f);
-	//n = XMLoadFloat4(&n4);
-	//XMStoreFloat3(&normal1, XMVector4Transform(n, XMMatrixRotationZ(-(a2+a3))));
 	XMStoreFloat3(&normal1, XMVector3TransformNormal(XMLoadFloat3(&normal1), XMMatrixRotationZ(-(a2 + a3))));
 
 	a5 = acosf(normal1.x);
@@ -676,7 +667,7 @@ void Room::DrawScene()
 {
 	DrawMirroredWorld();
 	m_phongEffect->Begin(m_context);
-
+	
 	DrawMetal();
 	m_worldCB->Update(m_context, m_lamp.getWorldMatrix());
 	m_lamp.Render(m_context);

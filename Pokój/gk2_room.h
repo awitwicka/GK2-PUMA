@@ -105,7 +105,7 @@ namespace gk2
 		void UpdateRobot(float dt);
 
 		void DrawScene();
-		void DrawWalls() const;
+		void DrawWalls(bool isMirror = false) const;
 		void DrawTeapot() const;
 		void DrawTableElement(Mesh& element) const;
 		void DrawTableLegs(DirectX::XMVECTOR camVec);
